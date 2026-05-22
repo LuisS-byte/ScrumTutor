@@ -1,4 +1,3 @@
-// MiembrosView.swift
 import SwiftUI
 
 struct MiembrosView: View {
@@ -13,14 +12,11 @@ struct MiembrosView: View {
                 if vm.isLoading {
                     ProgressView("Cargando miembros...")
                 } else if vm.miembros.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "person.2")
-                            .font(.system(size: 50))
-                            .foregroundColor(.secondary)
-                        Text("No hay miembros en este proyecto")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppEmptyStateView(
+                        icon: "person.2",
+                        title: "No hay miembros en este proyecto",
+                        message: "Invita personas para colaborar en el proyecto."
+                    )
                 } else {
                     List {
                         ForEach(vm.miembros) { miembro in
@@ -28,10 +24,7 @@ struct MiembrosView: View {
                                 .swipeActions(edge: .trailing) {
                                     if vm.esProductOwner(idProyecto: idProyecto) {
                                         Button(role: .destructive) {
-                                            vm.eliminarMiembro(
-                                                idProyecto: idProyecto,
-                                                idMiembro: miembro.id
-                                            )
+                                            vm.eliminarMiembro(idProyecto: idProyecto, idMiembro: miembro.id)
                                         } label: {
                                             Label("Eliminar", systemImage: "trash")
                                         }
@@ -43,18 +36,9 @@ struct MiembrosView: View {
                 }
             }
 
-            // Botón flotante — solo Product Owner puede invitar
             if vm.esProductOwner(idProyecto: idProyecto) {
-                Button {
+                AppFloatingButton(systemImage: "person.badge.plus") {
                     mostrarInvitar = true
-                } label: {
-                    Image(systemName: "person.badge.plus")
-                        .font(.title2.bold())
-                        .foregroundColor(.white)
-                        .padding(18)
-                        .background(Color.blue)
-                        .clipShape(Circle())
-                        .shadow(radius: 4)
                 }
                 .padding(.trailing, 24)
                 .padding(.bottom, 24)
@@ -68,15 +52,10 @@ struct MiembrosView: View {
             vm.cargarMiembros(idProyecto: idProyecto)
             vm.cargarRoles()
         }
-        .alert("Error", isPresented: .constant(vm.errorMessage != nil)) {
-            Button("OK") { vm.errorMessage = nil }
-        } message: {
-            Text(vm.errorMessage ?? "")
-        }
+        .appErrorAlert(message: $vm.errorMessage)
     }
 }
 
-// MARK: - Fila de miembro
 struct MiembroRowView: View {
 
     let miembro: Miembro
@@ -98,18 +77,18 @@ struct MiembroRowView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text(miembro.rolDescripcion ?? "—")
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color.blue.opacity(0.15))
-                    .foregroundColor(.blue)
-                    .cornerRadius(6)
+                AppBadge(
+                    text: miembro.rolDescripcion ?? "-",
+                    foregroundColor: .blue,
+                    backgroundColor: Color.blue.opacity(0.15)
+                )
 
-                if miembro.invitacion == true {
-                    Text("Pendiente")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
+                if miembro.invitacion == false {
+                    AppBadge(
+                        text: "Pendiente",
+                        foregroundColor: .orange,
+                        backgroundColor: Color.orange.opacity(0.15)
+                    )
                 }
             }
         }

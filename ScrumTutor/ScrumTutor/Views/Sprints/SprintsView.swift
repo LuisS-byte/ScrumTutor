@@ -1,4 +1,3 @@
-// SprintsView.swift
 import SwiftUI
 
 struct SprintsView: View {
@@ -13,21 +12,15 @@ struct SprintsView: View {
                 if vm.isLoading {
                     ProgressView("Cargando sprints...")
                 } else if vm.sprints.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "bolt.circle")
-                            .font(.system(size: 50))
-                            .foregroundColor(.secondary)
-                        Text("No hay sprints creados")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppEmptyStateView(
+                        icon: "bolt.circle",
+                        title: "No hay sprints creados",
+                        message: "Defini un sprint para empezar a planificar entregas."
+                    )
                 } else {
                     List {
                         ForEach(vm.sprints) { sprint in
-                            NavigationLink(destination: SprintDetailView(
-                                sprint: sprint,
-                                idProyecto: idProyecto
-                            )) {
+                            NavigationLink(destination: SprintDetailView(sprint: sprint, idProyecto: idProyecto)) {
                                 SprintRowView(sprint: sprint)
                             }
                             .swipeActions(edge: .trailing) {
@@ -38,7 +31,6 @@ struct SprintsView: View {
                                 }
 
                                 Button {
-                                    // editar — se maneja desde SprintDetailView
                                 } label: {
                                     Label("Editar", systemImage: "pencil")
                                 }
@@ -50,17 +42,8 @@ struct SprintsView: View {
                 }
             }
 
-            // Botón flotante +
-            Button {
+            AppFloatingButton {
                 mostrarCrear = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title2.bold())
-                    .foregroundColor(.white)
-                    .padding(18)
-                    .background(Color.blue)
-                    .clipShape(Circle())
-                    .shadow(radius: 4)
             }
             .padding(.trailing, 24)
             .padding(.bottom, 24)
@@ -72,15 +55,10 @@ struct SprintsView: View {
         .onAppear {
             vm.cargarSprints(idProyecto: idProyecto)
         }
-        .alert("Error", isPresented: .constant(vm.errorMessage != nil)) {
-            Button("OK") { vm.errorMessage = nil }
-        } message: {
-            Text(vm.errorMessage ?? "")
-        }
+        .appErrorAlert(message: $vm.errorMessage)
     }
 }
 
-// MARK: - Fila de sprint
 struct SprintRowView: View {
 
     let sprint: Sprint
@@ -100,13 +78,11 @@ struct SprintRowView: View {
                 Text(sprint.nombre)
                     .font(.headline)
                 Spacer()
-                Text(sprint.estadoDescripcion ?? "—")
-                    .font(.caption2)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(estadoColor.opacity(0.15))
-                    .foregroundColor(estadoColor)
-                    .cornerRadius(6)
+                AppBadge(
+                    text: sprint.estadoDescripcion ?? "-",
+                    foregroundColor: estadoColor,
+                    backgroundColor: estadoColor.opacity(0.15)
+                )
             }
             if let objetivo = sprint.objetivo, !objetivo.isEmpty {
                 Text(objetivo)
@@ -115,9 +91,9 @@ struct SprintRowView: View {
                     .lineLimit(2)
             }
             if let inicio = sprint.fechaInicio, let fin = sprint.fechaFin {
-                Text("\(inicio) → \(fin)")
+                Text("\(inicio) -> \(fin)")
                     .font(.caption2)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 4)

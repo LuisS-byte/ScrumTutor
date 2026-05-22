@@ -1,4 +1,3 @@
-// AuthViewModel.swift
 import Foundation
 
 @MainActor
@@ -7,8 +6,22 @@ class AuthViewModel: ObservableObject {
     @Published var isLoggedIn: Bool = false
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
+    @Published var globalMessage: String? = nil
 
-    // MARK: - Verificar sesión al abrir la app
+    init() {
+        NotificationCenter.default.addObserver(
+            forName: .sessionExpired,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            if self.isLoggedIn || KeychainManager.shared.hasToken() {
+                self.logout()
+                self.globalMessage = "Tu sesion expiro. Inicia sesion nuevamente."
+            }
+        }
+    }
+
     func checkSession() {
         guard let token = KeychainManager.shared.getToken() else {
             isLoggedIn = false
@@ -17,24 +30,6 @@ class AuthViewModel: ObservableObject {
         isLoggedIn = JWTDecoder.isValid(token)
     }
 
-    // ---------------------------------------------------------------
-    // Entradas     : correo: String — correo del usuario registrado
-    //                contrasena: String — contraseña en texto plano
-    // Salidas      : isLoggedIn: Bool — true si la autenticación fue exitosa
-    //                isLoading: Bool — estado de actividad de red
-    //                errorMessage: String? — descripción del error si falla
-    // Valor retorno: Void
-    // Función      : Valida que los campos no estén vacíos, envía
-    //                POST /api/auth/login y, al tener éxito, almacena
-    //                el JWT en el Keychain y activa isLoggedIn.
-    // Variables    : body: LoginRequest, isLoading: Bool,
-    //                isLoggedIn: Bool, errorMessage: String?
-    // Fecha        : 2026-04-25
-    // Autor        : Ernesto
-    // Rutinas anexas: NetworkManager.shared.request,
-    //                 APIConstants.Auth.login,
-    //                 KeychainManager.shared.saveToken
-    // ---------------------------------------------------------------
     func login(correo: String, contrasena: String) {
         guard !correo.isEmpty, !contrasena.isEmpty else {
             errorMessage = "Completa todos los campos"
@@ -65,25 +60,6 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    // ---------------------------------------------------------------
-    // Entradas     : nombre: String — nombre completo del nuevo usuario
-    //                correo: String — correo electrónico único
-    //                contrasena: String — contraseña en texto plano
-    // Salidas      : isLoggedIn: Bool — true si el registro fue exitoso
-    //                isLoading: Bool — estado de actividad de red
-    //                errorMessage: String? — descripción del error si falla
-    // Valor retorno: Void
-    // Función      : Valida que los campos no estén vacíos, envía
-    //                POST /api/auth/register y, al tener éxito, almacena
-    //                el JWT y activa isLoggedIn igual que en login().
-    // Variables    : body: RegisterRequest, isLoading: Bool,
-    //                isLoggedIn: Bool, errorMessage: String?
-    // Fecha        : 2026-04-25
-    // Autor        : Ernesto
-    // Rutinas anexas: NetworkManager.shared.request,
-    //                 APIConstants.Auth.register,
-    //                 KeychainManager.shared.saveToken
-    // ---------------------------------------------------------------
     func register(nombre: String, correo: String, contrasena: String) {
         guard !nombre.isEmpty, !correo.isEmpty, !contrasena.isEmpty else {
             errorMessage = "Completa todos los campos"
@@ -114,19 +90,6 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    // ---------------------------------------------------------------
-    // Entradas     : Ninguna
-    // Salidas      : isLoggedIn: Bool = false — redirige a la pantalla
-    //                de inicio de sesión
-    // Valor retorno: Void
-    // Función      : Elimina el JWT almacenado en el Keychain y desactiva
-    //                isLoggedIn para que ContentView redirija al login.
-    //                No realiza llamada al servidor.
-    // Variables    : isLoggedIn: Bool
-    // Fecha        : 2026-04-25
-    // Autor        : Ernesto
-    // Rutinas anexas: KeychainManager.shared.deleteToken
-    // ---------------------------------------------------------------
     func logout() {
         KeychainManager.shared.deleteToken()
         isLoggedIn = false

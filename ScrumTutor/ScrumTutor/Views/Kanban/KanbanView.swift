@@ -1,4 +1,3 @@
-// KanbanView.swift
 import SwiftUI
 
 struct KanbanView: View {
@@ -14,46 +13,16 @@ struct KanbanView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 16) {
-                        KanbanColumnaView(
-                            titulo: "Por hacer",
-                            color: .gray,
-                            tareas: vm.por_hacer,
-                            idSprint: idSprint,
-                            nuevoEstado: 1,
-                            vm: vm
-                        )
-                        KanbanColumnaView(
-                            titulo: "En progreso",
-                            color: .blue,
-                            tareas: vm.en_progreso,
-                            idSprint: idSprint,
-                            nuevoEstado: 2,
-                            vm: vm
-                        )
-                        KanbanColumnaView(
-                            titulo: "Completado",
-                            color: .green,
-                            tareas: vm.completadas,
-                            idSprint: idSprint,
-                            nuevoEstado: 3,
-                            vm: vm
-                        )
+                        KanbanColumnaView(titulo: "Por hacer", color: .gray, tareas: vm.por_hacer, idSprint: idSprint, vm: vm)
+                        KanbanColumnaView(titulo: "En progreso", color: .blue, tareas: vm.en_progreso, idSprint: idSprint, vm: vm)
+                        KanbanColumnaView(titulo: "Completado", color: .green, tareas: vm.completadas, idSprint: idSprint, vm: vm)
                     }
                     .padding()
                 }
             }
 
-            // Botón flotante +
-            Button {
+            AppFloatingButton {
                 mostrarCrear = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title2.bold())
-                    .foregroundColor(.white)
-                    .padding(18)
-                    .background(Color.blue)
-                    .clipShape(Circle())
-                    .shadow(radius: 4)
             }
             .padding(.trailing, 24)
             .padding(.bottom, 24)
@@ -65,27 +34,20 @@ struct KanbanView: View {
         .onAppear {
             vm.cargarTareas(idSprint: idSprint)
         }
-        .alert("Error", isPresented: .constant(vm.error_message != nil)) {
-            Button("OK") { vm.error_message = nil }
-        } message: {
-            Text(vm.error_message ?? "")
-        }
+        .appErrorAlert(message: $vm.error_message)
     }
 }
 
-// MARK: - Columna del Kanban
 struct KanbanColumnaView: View {
 
     let titulo: String
     let color: Color
     let tareas: [Tarea]
     let idSprint: Int
-    let nuevoEstado: Int
     @ObservedObject var vm: TareaViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header columna
             HStack {
                 Circle()
                     .fill(color)
@@ -93,18 +55,11 @@ struct KanbanColumnaView: View {
                 Text(titulo)
                     .font(.headline)
                 Spacer()
-                Text("\(tareas.count)")
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(color.opacity(0.15))
-                    .foregroundColor(color)
-                    .cornerRadius(10)
+                AppBadge(text: "\(tareas.count)", foregroundColor: color, backgroundColor: color.opacity(0.15))
             }
             .padding(.horizontal, 12)
             .padding(.top, 12)
 
-            // Tarjetas
             VStack(spacing: 10) {
                 if tareas.isEmpty {
                     Text("Sin tareas")
@@ -113,11 +68,7 @@ struct KanbanColumnaView: View {
                         .padding()
                 } else {
                     ForEach(tareas) { tarea in
-                        TareaCardView(
-                            tarea: tarea,
-                            idSprint: idSprint,
-                            vm: vm
-                        )
+                        TareaCardView(tarea: tarea, idSprint: idSprint, vm: vm)
                     }
                 }
             }

@@ -1,6 +1,3 @@
-// NetworkManager.swift
-// ScrumTutor
-
 import Foundation
 
 final class NetworkManager {
@@ -8,7 +5,12 @@ final class NetworkManager {
     static let shared = NetworkManager()
     private init() {}
 
-    // MARK: - Request genérico con respuesta decodificable
+    private func notifySessionExpired() {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .sessionExpired, object: nil)
+        }
+    }
+
     func request<T: Decodable>(
         path: String,
         method: String = "GET",
@@ -51,6 +53,7 @@ final class NetworkManager {
             }
 
             if httpResponse.statusCode == 401 {
+                self.notifySessionExpired()
                 DispatchQueue.main.async { completion(.failure(.unauthorized)) }
                 return
             }
@@ -60,9 +63,8 @@ final class NetworkManager {
                 return
             }
 
-            // Debug — ver respuesta cruda del backend
             if let json = String(data: data, encoding: .utf8) {
-                print("📦 Response [\(path)]: \(json)")
+                print("Response [\(path)]: \(json)")
             }
 
             do {
@@ -76,7 +78,6 @@ final class NetworkManager {
         }.resume()
     }
 
-    // MARK: - Request sin respuesta
     func requestEmpty(
         path: String,
         method: String,
@@ -118,57 +119,11 @@ final class NetworkManager {
             }
 
             if httpResponse.statusCode == 401 {
+                self.notifySessionExpired()
                 DispatchQueue.main.async { completion(.failure(.unauthorized)) }
                 return
             }
 
-            DispatchQueue.main.async { completion(.success(())) }
-        }.resume()
-    }
-
-    // MARK: - Request ignorando body de respuesta
-    func requestIgnoringResponse(
-        path: String,
-        method: String,
-        body: Encodable? = nil,
-        completion: @escaping (Result<Void, NetworkError>) -> Void
-    ) {
-        guard let url = URL(string: APIConstants.baseURL + path) else {
-            completion(.failure(.invalidURL))
-            return
-        }
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = method
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        if let token = KeychainManager.shared.getToken() {
-            urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-
-        if let body = body {
-            guard let encoded = try? JSONEncoder().encode(body) else {
-                completion(.failure(.encodingError))
-                return
-            }
-            urlRequest.httpBody = encoded
-        }
-
-        URLSession.shared.dataTask(with: urlRequest) { _, response, error in
-            if let error = error {
-                DispatchQueue.main.async {
-                    completion(.failure(.networkError(error.localizedDescription)))
-                }
-                return
-            }
-            guard let httpResponse = response as? HTTPURLResponse else {
-                DispatchQueue.main.async { completion(.failure(.invalidResponse)) }
-                return
-            }
-            if httpResponse.statusCode == 401 {
-                DispatchQueue.main.async { completion(.failure(.unauthorized)) }
-                return
-            }
             if (200...299).contains(httpResponse.statusCode) {
                 DispatchQueue.main.async { completion(.success(())) }
             } else {
@@ -176,9 +131,17 @@ final class NetworkManager {
             }
         }.resume()
     }
+
+    func requestIgnoringResponse(
+        path: String,
+        method: String,
+        body: Encodable? = nil,
+        completion: @escaping (Result<Void, NetworkError>) -> Void
+    ) {
+        requestEmpty(path: path, method: method, body: body, completion: completion)
+    }
 }
 
-// MARK: - Errores de red
 enum NetworkError: LocalizedError {
     case invalidURL
     case encodingError
@@ -190,13 +153,13 @@ enum NetworkError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL:              return "URL inválida"
-        case .encodingError:           return "Error al codificar los datos"
-        case .networkError(let msg):   return "Error de red: \(msg)"
-        case .invalidResponse:         return "Respuesta inválida del servidor"
-        case .unauthorized:            return "Sesión expirada. Inicia sesión nuevamente."
-        case .noData:                  return "Sin datos en la respuesta"
-        case .decodingError(let msg):  return "Error al decodificar: \(msg)"
+        case .invalidURL: return "URL invalida"
+        case .encodingError: return "Error al codificar los datos"
+        case .networkError(let message): return "Error de red: \(message)"
+        case .invalidResponse: return "Respuesta invalida del servidor"
+        case .unauthorized: return "Sesion expirada. Inicia sesion nuevamente."
+        case .noData: return "Sin datos en la respuesta"
+        case .decodingError(let message): return "Error al decodificar: \(message)"
         }
     }
 }

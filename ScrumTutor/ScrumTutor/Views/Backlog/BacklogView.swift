@@ -1,4 +1,3 @@
-// BacklogView.swift
 import SwiftUI
 
 struct BacklogView: View {
@@ -13,24 +12,17 @@ struct BacklogView: View {
                 ProgressView("Cargando backlog...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if vm.historias.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "list.bullet.clipboard")
-                        .font(.system(size: 50))
-                        .foregroundColor(.secondary)
-                    Text("No hay historias de usuario")
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                AppEmptyStateView(
+                    icon: "list.bullet.clipboard",
+                    title: "No hay historias de usuario",
+                    message: "Crea una historia para empezar a poblar el backlog del proyecto."
+                )
             } else {
                 List {
                     if !vm.sinSprint.isEmpty {
                         Section("Sin sprint asignado") {
                             ForEach(vm.sinSprint) { historia in
-                                NavigationLink(destination: HistoriaDetailView(
-                                    historia: historia,
-                                    idProyecto: idProyecto,
-                                    vm: vm
-                                )) {
+                                NavigationLink(destination: HistoriaDetailView(historia: historia, idProyecto: idProyecto, vm: vm)) {
                                     HistoriaRowView(historia: historia)
                                 }
                                 .swipeActions(edge: .trailing) {
@@ -46,11 +38,7 @@ struct BacklogView: View {
                     if !vm.conSprint.isEmpty {
                         Section("Asignadas a sprint") {
                             ForEach(vm.conSprint) { historia in
-                                NavigationLink(destination: HistoriaDetailView(
-                                    historia: historia,
-                                    idProyecto: idProyecto,
-                                    vm: vm
-                                )) {
+                                NavigationLink(destination: HistoriaDetailView(historia: historia, idProyecto: idProyecto, vm: vm)) {
                                     HistoriaRowView(historia: historia)
                                 }
                                 .swipeActions(edge: .trailing) {
@@ -67,17 +55,8 @@ struct BacklogView: View {
                 .listStyle(.insetGrouped)
             }
 
-            // Botón flotante
-            Button {
+            AppFloatingButton {
                 mostrarCrear = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title2.bold())
-                    .foregroundColor(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.blue)
-                    .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 3)
             }
             .padding(.trailing, 24)
             .padding(.bottom, 40)
@@ -89,14 +68,10 @@ struct BacklogView: View {
         .onAppear {
             vm.cargarHistorias(idProyecto: idProyecto)
         }
-        .alert("Error", isPresented: .constant(vm.errorMessage != nil)) {
-            Button("OK") { vm.errorMessage = nil }
-        } message: {
-            Text(vm.errorMessage ?? "")
-        }
+        .appErrorAlert(message: $vm.errorMessage)
     }
 }
-// MARK: - Fila de historia
+
 struct HistoriaRowView: View {
 
     let historia: Historia
@@ -109,13 +84,11 @@ struct HistoriaRowView: View {
                 prioridadBadge
                 estadoBadge
                 if let idSprint = historia.idSprint {
-                    Text("Sprint #\(idSprint)")
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.15))
-                        .foregroundColor(.blue)
-                        .cornerRadius(4)
+                    AppBadge(
+                        text: "Sprint #\(idSprint)",
+                        foregroundColor: .blue,
+                        backgroundColor: Color.blue.opacity(0.15)
+                    )
                 }
             }
         }
@@ -129,22 +102,19 @@ struct HistoriaRowView: View {
         case 2: color = .orange
         default: color = .green
         }
-        return Text(historia.prioridad ?? "—")
-            .font(.caption2)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.15))
-            .foregroundColor(color)
-            .cornerRadius(4)
+
+        return AppBadge(
+            text: historia.prioridad ?? "-",
+            foregroundColor: color,
+            backgroundColor: color.opacity(0.15)
+        )
     }
 
     var estadoBadge: some View {
-        Text(historia.estado ?? "—")
-            .font(.caption2)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Color.gray.opacity(0.15))
-            .foregroundColor(.gray)
-            .cornerRadius(4)
+        AppBadge(
+            text: historia.estado ?? "-",
+            foregroundColor: .gray,
+            backgroundColor: Color.gray.opacity(0.15)
+        )
     }
 }

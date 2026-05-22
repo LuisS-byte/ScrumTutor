@@ -1,4 +1,3 @@
-// BacklogSprintView.swift
 import SwiftUI
 
 struct BacklogSprintView: View {
@@ -6,20 +5,18 @@ struct BacklogSprintView: View {
     let idSprint: Int
     @State private var historias: [Historia] = []
     @State private var isLoading: Bool = false
+    @State private var errorMessage: String? = nil
 
     var body: some View {
         Group {
             if isLoading {
                 ProgressView("Cargando...")
             } else if historias.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "list.bullet.clipboard")
-                        .font(.system(size: 50))
-                        .foregroundColor(.secondary)
-                    Text("No hay historias en este sprint")
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                AppEmptyStateView(
+                    icon: "list.bullet.clipboard",
+                    title: "No hay historias en este sprint",
+                    message: "Asigna historias al sprint para verlas aca."
+                )
             } else {
                 List(historias) { historia in
                     HistoriaRowView(historia: historia)
@@ -29,18 +26,24 @@ struct BacklogSprintView: View {
         }
         .navigationTitle("Backlog Sprint")
         .onAppear { cargarHistorias() }
+        .appErrorAlert(message: $errorMessage)
     }
 
     func cargarHistorias() {
         isLoading = true
+        errorMessage = nil
+
         NetworkManager.shared.request(
             path: APIConstants.Sprints.historias(idSprint),
             method: "GET",
             responseType: [Historia].self
         ) { result in
             isLoading = false
-            if case .success(let data) = result {
+            switch result {
+            case .success(let data):
                 historias = data
+            case .failure(let error):
+                errorMessage = error.localizedDescription
             }
         }
     }

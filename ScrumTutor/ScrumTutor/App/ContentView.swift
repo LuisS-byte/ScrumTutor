@@ -1,4 +1,3 @@
-// ContentView.swift
 import SwiftUI
 
 struct ContentView: View {
@@ -15,6 +14,11 @@ struct ContentView: View {
         }
         .onAppear {
             authVM.checkSession()
+        }
+        .alert("Sesion", isPresented: .constant(authVM.globalMessage != nil)) {
+            Button("OK") { authVM.globalMessage = nil }
+        } message: {
+            Text(authVM.globalMessage ?? "")
         }
     }
 }
